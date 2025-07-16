@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>We Connect</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: #0B0421;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .mode-switch {
+      display: flex;
+      border: 2px solid white;
+      border-radius: 40px;
+      overflow: hidden;
+      margin-bottom: 30px;
+    }
+
+    .mode-switch button {
+      padding: 12px 32px;
+      background-color: transparent;
+      border: none;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .mode-switch .active {
+      background-color: #FFEB00;
+      color: black;
+      font-weight: bold;
+    }
+
+    .users-online {
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 12px 30px;
+      border-radius: 30px;
+      margin-bottom: 30px;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .start-button {
+      padding: 18px 36px;
+      background-color: #FFEB00;
+      color: black;
+      border: none;
+      border-radius: 50px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 12px rgba(255, 235, 0, 0.5);
+    }
+
+    .start-button:hover {
+      background-color: #e4d100;
+    }
+
+    .menu-icon {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      font-size: 30px;
+      cursor: pointer;
+    }
+
+    ul#dropdownMenu {
+      position: absolute;
+      top: 60px;
+      right: 30px;
+      list-style: none;
+      padding: 10px;
+      background-color: #1a1a2e;
+      border-radius: 10px;
+      border: 1px solid white;
+      width: 180px;
+      text-align: left;
+      display: none;
+      z-index: 1000;
+    }
+
+    ul#dropdownMenu li {
+      margin: 10px 0;
+    }
+
+    ul#dropdownMenu a {
+      color: white;
+      text-decoration: none;
+      padding: 8px 12px;
+      display: block;
+      border-radius: 6px;
+    }
+
+    ul#dropdownMenu a:hover {
+      background-color: #333;
+    }
+
+    .emoji {
+      font-size: 1.3rem;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="menu-icon" onclick="toggleMenu()">&#9776;</div>
+
+  <!-- Dropdown Menu -->
+  <ul id="dropdownMenu">
+    <li><a href="livestream.html">🎥 Livestream</a></li>
+    <li><a href="create-room.html">➕ Create Room</a></li>
+    <li><a href="#" onclick="logout()">🚪 Logout</a></li>
+  </ul>
+
+  <div class="mode-switch">
+    <button class="active" onclick="switchMode(this)">SOLO</button>
+    <button onclick="switchMode(this)">DUO</button>
+  </div>
+
+  <div class="users-online">
+    <span class="emoji">🧑‍🤝‍🧑👫</span>
+    <span><strong id="userCount">73,947</strong> users online</span>
+  </div>
+
+  <button class="start-button" onclick="startVideoChat()">
+    📹 Start Video Chat
+  </button>
+
+  <!-- ✅ Firebase logic -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, onChildAdded, set, remove, push } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyASlmUQeDx8EdW-n8KT7dqFA13yloBIPt8",
+      authDomain: "we-connect-847f4.firebaseapp.com",
+      databaseURL: "https://we-connect-847f4-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "we-connect-847f4",
+      storageBucket: "we-connect-847f4.appspot.com",
+      messagingSenderId: "530150260251",
+      appId: "1:530150260251:web:abc123def456gh789ijk"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+    const queueRef = ref(db, "queue");
+
+    window.startVideoChat = async function () {
+      const userRef = push(queueRef);
+      await set(userRef, { timestamp: Date.now() });
+
+      onChildAdded(queueRef, async (snapshot) => {
+        const otherUserKey = snapshot.key;
+
+        if (otherUserKey !== userRef.key) {
+          const roomId = `${userRef.key}_${otherUserKey}`;
+
+          await remove(ref(db, `queue/${userRef.key}`));
+          await remove(ref(db, `queue/${otherUserKey}`));
+
+          await set(ref(db, `rooms/${roomId}`), {
+            users: [userRef.key, otherUserKey],
+            createdAt: Date.now()
+          });
+
+          window.location.href = `random-matching.html`;
+        }
+      });
+    };
+
+    window.switchMode = function (button) {
+      document.querySelectorAll(".mode-switch button").forEach(btn => {
+        btn.classList.remove("active");
+      });
+      button.classList.add("active");
+    };
+
+    const userCount = document.getElementById("userCount");
+    setInterval(() => {
+      const random = 70000 + Math.floor(Math.random() * 10000);
+      userCount.textContent = random.toLocaleString();
+    }, 3000);
+
+    window.toggleMenu = function () {
+      const menu = document.getElementById("dropdownMenu");
+      menu.style.display = menu.style.display === "block" ? "none" : "block";
+    };
+
+    window.logout = function () {
+      signOut(auth)
+        .then(() => {
+          alert("You have been logged out.");
+          window.location.href = "signup.html";
+        })
+        .catch((error) => {
+          console.error("Logout Error:", error);
+          alert("Logout failed.");
+        });
+    };
+  </script>
+
+</body>
+</html>

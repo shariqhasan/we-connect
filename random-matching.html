@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Random Video Call - We Connect</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #6a11cb, #2575fc);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    #status {
+      margin: 1rem 0;
+      font-size: 1.1rem;
+    }
+
+    button {
+      padding: 12px 20px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 30px;
+      background: white;
+      color: #333;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background: #ddd;
+    }
+
+    .info {
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎥 Random Video Call</h1>
+  <p id="status">Click the button below to find a random stranger...</p>
+  <button onclick="findStranger()">🔍 Start Video Chat</button>
+  <div class="info">You'll be redirected to a live video room once a match is found.</div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      query,
+      getDocs,
+      doc,
+      updateDoc,
+      onSnapshot,
+      where,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyASlmUQeDx8EdW-n8KT7dqFA13yloBIPt8",
+      authDomain: "we-connect-847f4.firebaseapp.com",
+      projectId: "we-connect-847f4",
+      storageBucket: "we-connect-847f4.appspot.com",
+      messagingSenderId: "530150260251",
+      appId: "1:530150260251:web:abc123def456gh789ijk"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const matchRef = collection(db, "randomMatch");
+
+    async function findStranger() {
+      const status = document.getElementById("status");
+      status.textContent = "🔎 Searching for a stranger...";
+
+      // Look for someone not matched yet
+      const q = query(matchRef, where("matched", "==", false));
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        // ✅ Join the first unmatched person
+        const matchDoc = snapshot.docs[0];
+        await updateDoc(doc(db, "randomMatch", matchDoc.id), {
+          matched: true,
+          joinedAt: serverTimestamp()
+        });
+
+        status.textContent = "✅ Match found! Launching video call...";
+        setTimeout(() => {
+          window.location.href = `video-call.html?room=${matchDoc.id}`;
+        }, 1500);
+      } else {
+        // 🕒 No match, wait for someone else to join
+        const newMatch = await addDoc(matchRef, {
+          matched: false,
+          createdAt: serverTimestamp()
+        });
+
+        status.textContent = "⏳ Waiting for someone to connect...";
+        const unsubscribe = onSnapshot(doc(db, "randomMatch", newMatch.id), (docSnap) => {
+          const data = docSnap.data();
+          if (data?.matched === true) {
+            unsubscribe(); // stop listening
+            status.textContent = "✅ Someone joined! Starting call...";
+            setTimeout(() => {
+              window.location.href = `video-call.html?room=${newMatch.id}`;
+            }, 1500);
+          }
+        });
+      }
+    }
+
+    // ✅ Make it global for the button
+    window.findStranger = findStranger;
+  </script>
+</body>
+</html>

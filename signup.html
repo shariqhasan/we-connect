@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>We Connect - Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background-color: #7B4FFF;
+      color: white;
+      text-align: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    h1 {
+      font-size: 3rem;
+      margin-top: 3rem;
+    }
+
+    p {
+      font-size: 1.2rem;
+      margin-bottom: 2rem;
+    }
+
+    .login-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 1rem auto;
+      padding: 1rem;
+      width: 300px;
+      max-width: 80%;
+      border: 2px solid white;
+      border-radius: 40px;
+      background: transparent;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .login-button:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .login-button img {
+      width: 24px;
+      height: 24px;
+      margin-right: 10px;
+    }
+
+    .footer {
+      font-size: 0.8rem;
+      margin-top: 2rem;
+      padding: 0 2rem;
+      color: #ddd;
+    }
+
+    .emoji {
+      position: absolute;
+      font-size: 2rem;
+      animation: fall linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes fall {
+      0% {
+        transform: translateY(-100px) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(110vh) rotate(360deg);
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Falling Emojis -->
+  <script>
+    for (let i = 0; i < 50; i++) {
+      const emoji = document.createElement("div");
+      emoji.className = "emoji";
+      emoji.textContent = "🐵";
+      emoji.style.left = Math.random() * 100 + "vw";
+      emoji.style.animationDuration = (3 + Math.random() * 3) + "s";
+      emoji.style.fontSize = (1.5 + Math.random() * 1.5) + "rem";
+      emoji.style.top = "-" + (Math.random() * 200) + "px";
+      document.body.appendChild(emoji);
+    }
+  </script>
+
+  <h1>We Connect</h1>
+  <p>Start chatting by signing in</p>
+
+  <button class="login-button" onclick="googleLogin()">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google">
+    Connect with Google
+  </button>
+
+  <div class="footer">
+    <input type="checkbox" />
+    I agree to the <a href="#" style="color: #fff;">Terms</a> and <a href="#" style="color: #fff;">Privacy Policy</a>.
+  </div>
+
+  <!-- Firebase App, Auth, Firestore -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getAuth,
+      GoogleAuthProvider,
+      signInWithPopup
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      setDoc,
+      getDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyASlmUQeDx8EdW-n8KT7dqFA13yloBIPt8",
+      authDomain: "we-connect-847f4.firebaseapp.com",
+      projectId: "we-connect-847f4",
+      storageBucket: "we-connect-847f4.appspot.com",
+      messagingSenderId: "530150260251",
+      appId: "1:530150260251:web:abc123def456gh789ijk"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+
+    window.googleLogin = async function () {
+      try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+
+        if (!userSnap.exists()) {
+          await setDoc(userRef, {
+            uid: user.uid,
+            name: user.displayName,
+            email: user.email,
+            photoURL: user.photoURL,
+            createdAt: new Date().toISOString()
+          });
+          console.log("✅ User profile created in Firestore.");
+        } else {
+          console.log("🔁 User already exists in Firestore.");
+        }
+
+        // Redirect to home or dashboard
+        window.location.href = "home.html";
+      } catch (error) {
+        console.error("Google Sign-In Error:", error);
+        alert("❌ Login failed. Please try again.");
+      }
+    };
+  </script>
+</body>
+</html>
