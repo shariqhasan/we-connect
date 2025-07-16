@@ -1,52 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Video Call - We Connect</title>
   <style>
     body {
       margin: 0;
-      background-color: #0B0421;
-      color: white;
-      font-family: Arial, sans-serif;
+      background: #000;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
-    }
-
-    video {
-      width: 45%;
-      border-radius: 10px;
-      margin: 10px;
-      background-color: black;
-    }
-
-    #controls {
-      margin-top: 20px;
-    }
-
-    #endCall {
-      padding: 10px 20px;
-      background-color: red;
       color: white;
-      border: none;
-      border-radius: 30px;
-      cursor: pointer;
+    }
+    video {
+      width: 300px;
+      height: 220px;
+      background: black;
+      margin: 10px;
+      border-radius: 12px;
     }
   </style>
 </head>
 <body>
-
-  <h2>🔴 Live Video Call</h2>
+  <h2>🔴 Video Chat Room</h2>
   <video id="localVideo" autoplay muted playsinline></video>
   <video id="remoteVideo" autoplay playsinline></video>
-
-  <div id="controls">
-    <button id="endCall">End Call</button>
-  </div>
+  <button id="endCall">End Call</button>
 
   <script type="module" src="video-call.js"></script>
 </body>

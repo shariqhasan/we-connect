@@ -1,6 +1,15 @@
 // ✅ random-matching.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, push, set, onChildAdded, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import {
+  getDatabase,
+  ref,
+  push,
+  set,
+  onChildAdded,
+  remove,
+  get,
+  child
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyASlmUQeDx8EdW-n8KT7dqFA13yloBIPt8",
@@ -15,30 +24,50 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const queueRef = ref(db, "matchQueue");
+const roomsRef = ref(db, "rooms");
 
-// 🚀 Start Random Matching
+let matched = false; // ✅ prevent multiple redirects
+
+// 🚀 Start Random Match
 window.startRandomMatch = async () => {
-  const myRef = push(queueRef);
-  await set(myRef, { timestamp: Date.now() });
+  try {
+    const myRef = push(queueRef);
+    await set(myRef, { timestamp: Date.now() });
 
-  // Listen for other users
-  onChildAdded(queueRef, async (snapshot) => {
-    const otherUserKey = snapshot.key;
-    if (otherUserKey !== myRef.key) {
-      const roomId = `${myRef.key}_${otherUserKey}`;
+    const unsubscribe = onChildAdded(queueRef, async (snapshot) => {
+      const otherUserKey = snapshot.key;
+      if (!matched && otherUserKey !== myRef.key) {
+        matched = true;
 
-      // Clean queue
-      await remove(ref(db, `matchQueue/${myRef.key}`));
-      await remove(ref(db, `matchQueue/${otherUserKey}`));
+        const roomId = `${myRef.key}_${otherUserKey}`;
 
-      // Set room
-      await set(ref(db, `rooms/${roomId}`), {
-        users: [myRef.key, otherUserKey],
-        createdAt: Date.now()
-      });
+        // Clean the queue
+        await remove(ref(db, `matchQueue/${myRef.key}`));
+        await remove(ref(db, `matchQueue/${otherUserKey}`));
 
-      // Redirect both users
-      window.location.href = `index.html?room=${roomId}`;
-    }
-  });
+        // Create a room
+        await set(ref(db, `rooms/${roomId}`), {
+          users: [myRef.key, otherUserKey],
+          createdAt: Date.now()
+        });
+
+        // Redirect both users
+        window.location.href = `video-call.html?room=${roomId}`;
+      }
+    });
+
+    // Fallback: Remove from queue after timeout (e.g., 60 seconds)
+    setTimeout(async () => {
+      if (!matched) {
+        await remove(myRef);
+        alert("⚠️ No match found. Please try again.");
+        matched = true;
+        unsubscribe(); // stop listening
+      }
+    }, 60000);
+
+  } catch (err) {
+    console.error("Matching failed:", err);
+    alert("❌ Error while matching. Try again later.");
+  }
 };
